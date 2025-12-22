@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "fmzjPHEqfPE=",
+  "dgSpecHash": "AjelGqGlLBo=",
   "success": true,
-  "projectFilePath": "D:\\CleanParser\\HandHistoryParser\\HandHistoryParser\\HandHistoryParser.csproj",
+  "projectFilePath": "D:\\csharptutor\\CLIParser\\HandHistoryParser\\HandHistoryParser.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

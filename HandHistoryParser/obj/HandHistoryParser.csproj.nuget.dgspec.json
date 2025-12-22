@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\CleanParser\\HandHistoryParser\\HandHistoryParser\\HandHistoryParser.csproj": {}
+    "D:\\csharptutor\\CLIParser\\HandHistoryParser\\HandHistoryParser.csproj": {}
   },
   "projects": {
-    "D:\\CleanParser\\HandHistoryParser\\HandHistoryParser\\HandHistoryParser.csproj": {
+    "D:\\csharptutor\\CLIParser\\HandHistoryParser\\HandHistoryParser.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\CleanParser\\HandHistoryParser\\HandHistoryParser\\HandHistoryParser.csproj",
+        "projectUniqueName": "D:\\csharptutor\\CLIParser\\HandHistoryParser\\HandHistoryParser.csproj",
         "projectName": "HandHistoryParser",
-        "projectPath": "D:\\CleanParser\\HandHistoryParser\\HandHistoryParser\\HandHistoryParser.csproj",
+        "projectPath": "D:\\csharptutor\\CLIParser\\HandHistoryParser\\HandHistoryParser.csproj",
         "packagesPath": "C:\\Users\\GleboZavr\\.nuget\\packages\\",
-        "outputPath": "D:\\CleanParser\\HandHistoryParser\\HandHistoryParser\\obj\\",
+        "outputPath": "D:\\csharptutor\\CLIParser\\HandHistoryParser\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

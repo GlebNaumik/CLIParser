@@ -24,18 +24,18 @@ CLIFunctions {
 
     public static Database
     ExecuteCommand(this ICommand userCommand, Database database) {
-    return userCommand switch {
-        ShowPlayerInformationCommand showPlayer => ExecuteShowPlayerInformationCommand(showPlayer.PlayerNickname, database),
-        DeleteHandCommand deleteHand => ExecuteDeleteHandCommand(deleteHand.HandId, database),
-        ShowDeletedHandsCommand showDeleted => ExecuteShowDeletedHandsCommand(database),
-        ImportFileCommand importFile => ExecuteImportFileCommand(importFile.Path, database),
-        ShowAllHandsInformationCommand cmd => ExecuteShowAllHandsInformationCommand(database),
-        _ => database
-    };
+        return userCommand switch {
+            ShowPlayerInformationCommand showPlayer => database.ExecuteShowPlayerInformationCommand(showPlayer.PlayerNickname),
+            DeleteHandCommand deleteHand => database.ExecuteDeleteHandCommand(deleteHand.HandId),
+            ShowDeletedHandsCommand showDeleted => database.ExecuteShowDeletedHandsCommand(),
+            ImportFileCommand importFile => database.ExecuteImportFileCommand(importFile.Path),
+            ShowAllHandsInformationCommand showAll => database.ExecuteShowAllHandsInformationCommand(),
+            _ => database
+        };
     }
 
     public static Database
-    ExecuteShowPlayerInformationCommand(string playerNickname, Database database) {
+    ExecuteShowPlayerInformationCommand(this Database database, string playerNickname) {
         var handsCount = database.GetPlayerHandsCount(playerNickname);
         var lastHands = database.GetLastTenPlayerHands(playerNickname);
         $"Игрок с ником {playerNickname} сыграл {handsCount} раздач.".WriteToConsole();
@@ -45,21 +45,21 @@ CLIFunctions {
     }
 
     public static Database
-    ExecuteDeleteHandCommand(long handId, Database database) {
+    ExecuteDeleteHandCommand(this Database database, long handId) {
         database = database.DeleteHand(handId);
         $"Рука {handId} удалена".WriteToConsole();
         return database;
     }
 
     public static Database
-    ExecuteShowDeletedHandsCommand(Database database) {
+    ExecuteShowDeletedHandsCommand(this Database database) {
         "Удаленные раздачи:".WriteToConsole();
         foreach (var handId in database.GetDeletedHandsIds()) handId.ToString().WriteToConsole();
         return database;
     }
 
     public static Database
-    ExecuteImportFileCommand(string path, Database database) {
+    ExecuteImportFileCommand(this Database database, string path) {
         var handHistories = path.GetAllTextFromFile().GetHandHistoriesFromFile();
         foreach (var handHistory in handHistories) database = database.AddHand(handHistory);
         $"Файл импортирован".WriteToConsole();
@@ -67,7 +67,7 @@ CLIFunctions {
     }
 
     public static Database
-    ExecuteShowAllHandsInformationCommand(Database database) {
+    ExecuteShowAllHandsInformationCommand(this Database database) {
         $"Всего раздач в базе: {database.GetHandHistoriesCount()}. Игроков в базе: {database.GetPlayersCount()}".WriteToConsole();
         return database;
     }
@@ -150,4 +150,3 @@ CLIFunctions {
         return false;
     }
 }
-    
