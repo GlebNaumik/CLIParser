@@ -7,27 +7,35 @@ SymbolAttribute : Attribute {
 }
 
 public class
-CommandAttribute : Attribute {
+NameAttribute : Attribute {
     public string Name { get; }
-    public string Description { get; }
-    public CommandAttribute (string name, string description) {
+    public NameAttribute (string name) {
         Name = name;
-        Description = description;
     }
 }
 
 public class
-CommandParameterAttribute : Attribute {
-    public string Name { get; }
-    public string ShortName { get; }
-    public CommandParameterAttribute (string name, string shortName) {
-        Name = name;
-        ShortName = shortName;
+DescriptionAttribute : Attribute {
+    public string Description { get; }
+    public DescriptionAttribute(string description) {
+        Description = description;
+    }
+}
+
+public class 
+AliasAttribute : Attribute {
+    public string Alias { get; }
+    public AliasAttribute (string alias) {
+        Alias = alias;
     }
 }
 
 public static class
 AttributesFunctions {
+
+    public static string
+    NormalizeString(this string name) =>
+        name.TrimStart('-').ToLowerInvariant();
 
     public static char
     GetSymbol<TEnum>(this TEnum value) where TEnum : Enum =>

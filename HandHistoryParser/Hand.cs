@@ -8,6 +8,7 @@ HandHistory {
         HandId = handId;
         Players = players;
     }
+    public bool ContainsPlayer(string nickname) => Players.Any(player => player.Nickname == nickname);
 }
 
 public class
@@ -16,7 +17,7 @@ HandHistoryPlayer {
     public string Nickname { get; }
     public double StackSize { get; }
     public Currencies Currency { get; }
-    public ImmutableList<Card> DealtCards { get; }
+    public ImmutableList<Card> DealtCards { get; }  
     public HandHistoryPlayer(int seatNumber, string nickname, double stackSize, Currencies currency, ImmutableList<Card> dealtCards) {
         SeatNumber = seatNumber;
         Nickname = nickname;

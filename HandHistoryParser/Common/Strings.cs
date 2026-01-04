@@ -33,4 +33,8 @@ Strings {
     public static string
     AppendLine(this string @string, string line) =>
         string.IsNullOrEmpty(@string) ? line : $"{@string}\n{line}";
+
+    public static bool
+    EqualsIgnoreCase(this string @string, string other) =>
+        string.Equals(@string, other, StringComparison.OrdinalIgnoreCase);
 }

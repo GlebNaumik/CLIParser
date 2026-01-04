@@ -1,24 +1,31 @@
 ﻿using HandHistoryParser;
 using HandHistoryParser.Common;
+using System.Data;
+using System.Security.AccessControl;
+using System.Xml.Linq;
 
 namespace HandHistoryParser;
 
 public static class
 CLIFunctions {
+    public static void
+    Main(string[] args) {
+        RunCLI();
+    }
 
     public static void
     RunCLI() {
-        var database = new Database(ImmutableList<HandHistory>.Empty, ImmutableList<long>.Empty);
+        var database = Database.Empty;
         while (true) {
-            "Введите команду:".WriteToConsole();
-            var userInput = Console.ReadLine();
-            if (userInput == null)
-                continue;
-            if (!userInput.TryParseCommand(out ICommand command)) {
-                "Неизвестная команда или неверные параметры команды.".WriteToConsole();
-                continue;
+            try {
+                "Введите команду:".WriteToConsole();
+                var userInput = Console.ReadLine();
+                var command = userInput.ParseCommand();
+                database = command.ExecuteCommand(database);
             }
-            database = command.ExecuteCommand(database);
+            catch (Exception ex) {
+                $"Произошла ошибка: {ex.Message}".WriteToConsole();
+            }
         }
     }
 
@@ -27,7 +34,7 @@ CLIFunctions {
         return userCommand switch {
             ShowPlayerInformationCommand showPlayer => database.ExecuteShowPlayerInformationCommand(showPlayer.PlayerNickname),
             DeleteHandCommand deleteHand => database.ExecuteDeleteHandCommand(deleteHand.HandId),
-            ShowDeletedHandsCommand showDeleted => database.ExecuteShowDeletedHandsCommand(),
+            ShowDeletedHandsCommand showDeleted => database.ExecuteShowDeletedHandCommand(),
             ImportFileCommand importFile => database.ExecuteImportFileCommand(importFile.Path),
             ShowAllHandsInformationCommand showAll => database.ExecuteShowAllHandsInformationCommand(),
             _ => database
@@ -36,8 +43,8 @@ CLIFunctions {
 
     public static Database
     ExecuteShowPlayerInformationCommand(this Database database, string playerNickname) {
-        var handsCount = database.GetPlayerHandsCount(playerNickname);
-        var lastHands = database.GetLastTenPlayerHands(playerNickname);
+        var handsCount = database.GetPlayerHandCount(playerNickname);
+        var lastHands = database.GetLastPlayerHands(playerNickname, 10);
         $"Игрок с ником {playerNickname} сыграл {handsCount} раздач.".WriteToConsole();
         "Последние десять раздач:".WriteToConsole();
         foreach (var hand in lastHands) hand.HandPlayerToString(playerNickname).WriteToConsole();
@@ -52,9 +59,9 @@ CLIFunctions {
     }
 
     public static Database
-    ExecuteShowDeletedHandsCommand(this Database database) {
+    ExecuteShowDeletedHandCommand(this Database database) {
         "Удаленные раздачи:".WriteToConsole();
-        foreach (var handId in database.GetDeletedHandsIds()) handId.ToString().WriteToConsole();
+        foreach (var handId in database.DeletedHandIds) handId.ToString().WriteToConsole();
         return database;
     }
 
@@ -68,85 +75,83 @@ CLIFunctions {
 
     public static Database
     ExecuteShowAllHandsInformationCommand(this Database database) {
-        $"Всего раздач в базе: {database.GetHandHistoriesCount()}. Игроков в базе: {database.GetPlayersCount()}".WriteToConsole();
+        $"Всего раздач в базе: {database.HandHistoryCount}. Игроков в базе: {database.PlayerCount}".WriteToConsole();
         return database;
     }
 
-    public static bool
-    TryParseCommand(this string userInput, out ICommand command) {
-        command = null;
-        if (userInput.IsNullOrWhiteSpace() || !userInput.TryParseCommandName(out string name, out string[] parameters)) return false;
-        var commandType = name.TryParseCommandType();
-        if (commandType == null) return false;
-        var instance = Activator.CreateInstance(commandType);
-        if (!TryParseOptions(instance, parameters)) return false;
-        command = (ICommand)instance;
-        return true;
+    public static ICommand
+    ParseCommand(this string userInput) {
+        if (userInput.IsNullOrWhiteSpace())
+            throw new InvalidUserInputException("No user input");
+
+        var commandName = userInput.ParseCommandName();
+        var constructor = commandName.ParseCommandType().GetMainConstructor();
+        var parameterValues = userInput
+            .ParseCommandParameters()
+            .ToList()
+            .GetMatchingParameterValues(constructor)
+            .ToArray();
+        return (ICommand)constructor.Invoke(parameterValues);
     }
 
-    public static bool
-    TryParseCommandName(this string userInput, out string name, out string[] parameters) {
-        name = null;
-        parameters = null;
-        if (string.IsNullOrWhiteSpace(userInput)) return false;
+    public static IEnumerable<object>
+    GetMatchingParameterValues(this IList<(string name, string? value)> inputParameters, ConstructorInfo constructor) {
+        foreach (var parameter in constructor.GetParameters())
+            yield return inputParameters.GetParameterValue(parameter);
+    }
 
-        var commandParts = userInput.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        name = commandParts[0];
-        parameters = commandParts.Skip(1).ToArray();
-        return true;
+    public static object
+    GetParameterValue(this IList<(string name, string? value)> input, ParameterInfo parameter) {
+        foreach (var (name, value) in input)
+            return value.ParseParameterValue(parameter.ParameterType);
+        throw new InvalidUserInputException($"Не удалось получить значение параметра '{parameter.Name}' для команды.");
+    }
+
+    public static string
+    ParseCommandName (this string userInput) {
+        if (string.IsNullOrWhiteSpace(userInput)) throw new InvalidOperationException("Команда не введена");
+        return userInput.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+    }
+
+    public static IEnumerable<(string? name, string? value)>
+    ParseCommandParameters(this string userInput) {
+        var parts = userInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).ToList();
+        for (int i = 0; i + 1 < parts.Count; i += 2) {
+            yield return (parts[i].NormalizeString(), parts[i + 1]);
+        }
     }
 
     public static Type
-    TryParseCommandType(this string name) =>
-        AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(entities => entities.GetTypes())
-            .Where(types => typeof(ICommand).IsAssignableFrom(types))
-            .Select(types => new { Type = types, Attr = types.GetCustomAttribute<CommandAttribute>() })
-            .Where(attrbiute => attrbiute.Attr != null && attrbiute.Attr.Name == name)
-            .Select(attrbiute => attrbiute.Type)
-            .FirstOrDefault()!;
-
-    public static bool
-    TryParseOptions(object instance, string[] parameters) {
-        var properties = instance.GetType()
-            .GetProperties()
-            .Where(parameters => parameters.GetCustomAttribute<CommandParameterAttribute>() != null)
-            .ToArray();
-
-        for (int i = 0; i < parameters.Length; i++) {
-            var commandEntuty = parameters[i];
-            var property = properties.FirstOrDefault(p => {
-                var option = p.GetCustomAttribute<CommandParameterAttribute>();
-                return commandEntuty == "--" + option.Name || commandEntuty == "-" + option.ShortName;
-            });
-            if (property == null)
-                return false;
-            if (i + 1 >= parameters.Length)
-                return false;
-            var parameterValue = parameters[++i];
-            object convertedValue;
-
-            if (!TryConvertToParameterValue(parameterValue, property.PropertyType, out convertedValue))
-                return false;
-            property.SetValue(instance, convertedValue);
+    ParseCommandType (this string name) {
+        foreach (var commandType in typeof(ICommand).GetAllAssignableTypes()) {
+            var attribute = commandType.GetCustomAttribute<NameAttribute>();
+            if (attribute != null && attribute.Name == name) return commandType;
         }
-        return true;
+        throw new InvalidOperationException($"Команда с именем '{name}' не найдена");
     }
 
-    public static bool
-    TryConvertToParameterValue(string input, Type targetType, out object value) {
-        value = null;
-        if (targetType == typeof(string)) {
-            value = input;
-            return true;
-        }
-        if (targetType == typeof(long)) {
-            if (long.TryParse(input, out long longValue)) {
-                value = longValue;
+    public static object
+    ParseParameterValue(this string? value, Type targetType) {
+        if (targetType == typeof(string))
+            return value ?? string.Empty;
+
+        if (targetType == typeof(bool)) {
+            if (value.IsNullOrWhiteSpace() || value.EqualsIgnoreCase("true"))
                 return true;
-            }
             return false;
         }
-        return false;
+
+        if (targetType == typeof(long))
+            if (long.TryParse(value, out var longResult))
+                return longResult;
+            else
+                throw new InvalidUserInputException($"Не удалось преобразовать значение '{value}' в тип long.");
+        if (targetType == typeof(int))
+            if (int.TryParse(value, out var intResult))
+                return intResult;
+            else
+                throw new InvalidUserInputException($"Не удалось преобразовать значение '{value}' в тип int.");
+
+        throw new InvalidUserInputException($"Неизвестный тип параметра: {targetType.Name}");
     }
 }

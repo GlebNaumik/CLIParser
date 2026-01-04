@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HandHistoryParser")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+703592c68c9545b6c72082e8b399bb82378e1e84")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aefeee37ef9fa63dc709e6cb6235f01a146f3218")]
 [assembly: System.Reflection.AssemblyProductAttribute("HandHistoryParser")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HandHistoryParser")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
